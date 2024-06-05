@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScreenLand</title>
+    <script src="/static/int/reconnecting-websocket.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+</head>
+<body>
+    <style>
+        body{
+            margin: 0px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            background-color: #383142;
+        }
+        #imagem{
+            width: 100vw;
+            height: 100vh;
+
+        }
+        video{
+            width: 100vw;
+            height: 100vh;
+        }
+        #container{
+            margin-top: 40%;
+            display: flex;
+        }
+        #msg{
+            margin-right: 10px;
+        }
+        #form{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        iframe{
+            width: 100vw;
+            height: 100vh;
+        }
+
+    </style>
+    <div id="form">
+        <img width="200"  src="/static/int/monitor.png" alt="logo">
+        <div id="container">
+            <input type="text" name="msg" id="msg">
+            <button>SEND</button>
+        </div>
+    </div>
+    <div>
+        <video style="display: none;" controls autoplay loop ></video>
+        <img style="display: none;" id="imagem">
+        <iframe style="display: none;" src="" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+    </div>
+    
+    <script>
+        const img=document.querySelector('#imagem')
+        const video=document.querySelector('video')
+        const frame=document.querySelector('iframe')
+ 
+        const uri=window.location.hostname
+        
+        const ws=new ReconnectingWebSocket(`ws://${uri}:8282`)
+        ws.onopen=(data)=>{
+            console.log(data)
+        }
+
+        const btn=document.querySelector("button")
+        const msg=document.querySelector("input")
+
+        btn.addEventListener("click",()=>{
+            
+            ws.send(msg.value)
+            let form=document.querySelector("#form")
+            form.style.display="none"
+        
+        })
+
+        ws.onmessage=(daa)=>{
+
+                let mime=daa.data.split('.')
+                switch (mime[mime.length-1]) {
+                    case "mp4":
+                        video.src=daa.data
+                        video.play()
+                        video.style.display="block"
+                        img.style.display="none"
+                        frame.src=''
+                        frame.style.display="none"
+                        break;
+                    case "jpg":
+                        video.pause()
+                        video.style.display="none"
+                        frame.src=''
+                        frame.style.display="none"
+                        img.src=daa.data
+                        img.style.display="block"
+                        break;
+                    case "webp":
+                        video.pause()
+                        video.style.display="none"
+                        frame.src=''
+                        frame.style.display="none"
+                        img.src=daa.data
+                        img.style.display="block"
+                        break;
+                    case 'YOUTUBE':
+
+                        let urlvideo=daa.data.split('.')
+
+                        video.pause()
+                        video.style.display="none"
+                        frame.src=`http://youtube.com/embed/${urlvideo[0]}?autoplay=1&loop=1`
+                        img.style.display="none"
+                        frame.style.display="block"
+
+                        break;
+                    default:
+                        const list=JSON.parse(daa.data)
+                        const prefix='/static/ext/'+list[list.length-1] +'/'
+                        list.pop()
+
+                        var loop=0
+
+                        video.loop=false
+                        video.src=prefix+list[loop]
+                        video.play()
+                        video.style.display="block"
+                        img.style.display="none"
+                        frame.src=''
+                        frame.style.display="none"
+                        
+
+                        video.addEventListener("ended",()=>{
+
+                            loop++
+                            if(list.length==loop){
+                                loop=0
+                            }
+                            
+
+                            video.src=prefix+list[loop]
+                            video.play()
+                            
+                        })
+
+                        break;
+                    }
+                    
+            }
+
+    </script>
+</body>
+</html>
