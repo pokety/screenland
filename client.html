@@ -33,6 +33,7 @@
             margin-right: 10px;
         }
         #form{
+            top:40%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -41,13 +42,15 @@
             width: 100vw;
             height: 100vh;
         }
+        #token{
+            color:azure;
+            font-size: xx-large;        }
 
     </style>
     <div id="form">
         <img width="200"  src="/static/int/monitor.png" alt="logo">
         <div id="container">
-            <input type="text" name="msg" id="msg">
-            <button>SEND</button>
+            <h1 id="token"></h1>
         </div>
     </div>
     <div>
@@ -61,27 +64,39 @@
         const img=document.querySelector('#imagem')
         const video=document.querySelector('video')
         const frame=document.querySelector('iframe')
- 
+
+        const token=Math.floor(Math.random()*1000)
         const uri=window.location.hostname
+
+        const options = {// custom WebSocket constructor
+            connectionTimeout: 1000,
+            maxRetries: 10,
+        };
         
-        const ws=new ReconnectingWebSocket(`ws://${uri}:8282`)
+        const ws=new ReconnectingWebSocket(`ws://${uri}:8282`,[],options)
         ws.onopen=(data)=>{
-            console.log(data)
+            let label=document.querySelector("#token")
+            label.innerText=token
+            ws.send(token)
         }
 
         const btn=document.querySelector("button")
         const msg=document.querySelector("input")
 
-        btn.addEventListener("click",()=>{
-            
-            ws.send(msg.value)
-            let form=document.querySelector("#form")
-            form.style.display="none"
+
+        // btn.addEventListener("click",()=>{
+       
+        //     console.log(window.location)
+
+        //     ws.send(msg.value)
+        //     let form=document.querySelector("#form")
+        //     form.style.display="none"
         
-        })
+        // })
 
         ws.onmessage=(daa)=>{
-
+                let form=document.querySelector("#form")
+                form.style.display="none"
                 let mime=daa.data.split('.')
                 switch (mime[mime.length-1]) {
                     case "mp4":

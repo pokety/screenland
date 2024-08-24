@@ -4,7 +4,7 @@ import fs from "fs-extra"
 import express from "express"
 import {fileURLToPath } from 'url';
 import path,{ dirname } from 'path';
-import {networkInterfaces} from "os"
+import {networkInterfaces,platform} from "os"
 const PORT=8080
 const listInterfaces =Object.keys(networkInterfaces())
 const interfaces=networkInterfaces()
@@ -27,8 +27,7 @@ app.get("/video/:urlvideo", function (req, res) {
     if (!range) {
         res.status(400).send("Requires Range header");
     }
-    
-    if(req.headers.connection != undefined){
+    if(req.headers.connection == undefined){
         res.redirect("/static/ext/" + req.params.urlvideo)
     }else{
         const videoSize = fs.statSync("./public/ext/" + req.params.urlvideo).size;
@@ -71,14 +70,35 @@ const question=inquirer.createPromptModule()
 
 async function menu(){
     process.stdout.write('\x1Bc')
-    console.log(`SERVER: \x1b[36;4mhttp://${interfaces}:${PORT}`)
+
+    switch (platform()) {
+        case "win32":
+            console.log(`SERVER: \x1b[36;4mhttp://${interfaces["Ethernet"][3].address}:${PORT} \x1b[37m`)
+            break;
+        case "linux" :
+            listInterfaces.forEach((el)=>{
+                console.log(`SERVER: \x1b[36;4mhttp://${interfaces[el][0].address}:${PORT} \x1b[37m`)
+            })
+            
+            break;
+        default:
+            break;
+    }
+    var tokenClient=[]
+    for (const [key, value] of sockets) {
+        tokenClient.push(key)
+    }
+    console.log( `\x1b[32;4m${tokenClient} \x1b[37m`)
+
     const client=await question({
         name:"cliente",
         type:"text",
     })
+    
     process.stdout.write('\x1Bc')
     let videos=await fs.readdirSync("./public/ext")
     videos.unshift("YOUTUBE")
+    process.stdout.write('\x1Bc')
     const selected=await question({
         name:"select",
         type:"list",
@@ -123,7 +143,8 @@ async function menu(){
 
             if(sockets.get(client.cliente)){
                 var videoID=urlVideo.url.split('=')
-                videoID=videoID[videoID.length-1]
+                videoID=videoID[1].split('&')
+                videoID=videoID[videoID.length-2]
                 sockets.get(client.cliente).send(videoID + '.YOUTUBE')
                 menu()
             }else{
@@ -143,8 +164,5 @@ async function menu(){
 }
 
 app.listen(PORT,()=>{
-    listInterfaces.forEach((el)=>{
-        //console.log(interfaces[el])
-        console.log(`SERVER: \x1b[36;4mhttp://${interfaces[el][0].address}:${PORT} \x1b[37m`)
-    })
+    menu()
 })
